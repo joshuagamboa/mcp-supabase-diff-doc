@@ -99,23 +99,25 @@ The tool generates two main output files:
 
 To integrate with Augment Code VS Code extension:
 
-1. Open VS Code Settings
-2. Search for "Augment" and find the MCP server configuration section
-3. Add a new MCP server with the following details:
-   - **Name**: `Supabase Schema Tracker`
-   - **Command**: `node /path/to/mcp-supabase-diff-doc/mcp/server.js`
-     - Replace `/path/to` with the actual path to your project
-     - If you encounter "node not found" errors, use the full path to Node.js:
-       `/opt/homebrew/bin/node /path/to/mcp-supabase-diff-doc/mcp/server.js`
-   - **Environment Variables**:
-     ```
-     DB_HOST=localhost
-     DB_PORT=54322
-     DB_NAME=postgres
-     DB_USER=postgres
-     DB_PASSWORD=postgres
-     MCP_PORT=6789
-     ```
+1. Open VS Code Settings (JSON)
+2. Add the following configuration to your settings:
+
+```json
+"augment.advanced": {
+  "mcpServers": [
+    {
+      "name": "Supabase Schema Tracker",
+      "url": "http://localhost:6789/mcp"
+    }
+  ]
+}
+```
+
+3. Start the MCP server manually in a terminal:
+```bash
+cd /path/to/mcp-supabase-diff-doc
+DB_HOST=localhost DB_PORT=54322 DB_NAME=postgres DB_USER=postgres DB_PASSWORD=postgres MCP_PORT=6789 node mcp/server.js
+```
 
 For more detailed instructions, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
 
