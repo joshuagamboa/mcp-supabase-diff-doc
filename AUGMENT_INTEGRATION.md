@@ -1,32 +1,34 @@
 # Integrating with Augment Code
 
-This document provides instructions for integrating the MCP Supabase Schema Tracker with Augment Code VS Code extension using the `augment.advanced` settings.
+This document provides instructions for integrating the MCP Supabase Schema Tracker with Augment Code VS Code extension using the Augment Code Settings UI.
 
-## Augment Code Advanced Configuration
+## Augment Code MCP Server Configuration
 
 To configure the MCP Supabase Schema Tracker in Augment Code settings:
 
-1. Open VS Code Settings (JSON) by:
-   - Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
-   - Type "Preferences: Open Settings (JSON)" and select it
+1. Open Augment Code Settings in VS Code:
+   - Click on the Augment Code icon in the VS Code sidebar
+   - Click on the gear icon (⚙️) to open settings
+   - Navigate to the "MCP" section
+   - Click the "+" button to add a new MCP server
 
-2. Add or update the `augment.advanced` section with the following configuration:
+2. Fill in the MCP server configuration fields:
+   - **Name**: `Supabase Schema Tracker`
+   - **Command**: `node /path/to/mcp-supabase-diff-doc/mcp/server.js`
+     - Replace `/path/to` with the actual path to your project
+     - For example: `node /Users/jpg/Coding/mcp-supabase-diff-doc/mcp/server.js`
 
-```json
-"augment.advanced": {
-  "mcpServers": [
-    {
-      "name": "Supabase Schema Tracker",
-      "url": "http://localhost:6789/mcp",
-      "toolInstructions": "You have access to a tool called 'document_db_changes' that can detect and document schema changes in a Supabase PostgreSQL database. This tool will analyze the database, identify any Data Definition Language (DDL) changes since the last run, update a changelog file, and generate a complete schema structure document. Use this tool when the user asks about database schema, documentation, or tracking changes to their Supabase database structure."
-    }
-  ]
-}
-```
+3. Add Environment Variables (click "Add" button for each):
+   - `DB_HOST` = `localhost`
+   - `DB_PORT` = `54322`
+   - `DB_NAME` = `postgres`
+   - `DB_USER` = `postgres`
+   - `DB_PASSWORD` = `postgres`
+   - `MCP_PORT` = `6789`
 
-3. Save the settings file
+4. Click "Add" to save the MCP server configuration
 
-4. Start the MCP server manually in a terminal:
+5. Augment Code will automatically start the MCP server when needed, or you can start it manually in a terminal:
    ```bash
    cd /path/to/mcp-supabase-diff-doc
    DB_HOST=localhost DB_PORT=54322 DB_NAME=postgres DB_USER=postgres DB_PASSWORD=postgres MCP_PORT=6789 node mcp/server.js
@@ -77,6 +79,17 @@ Once configured, you can use the following types of prompts with Augment Code:
 - "Update the schema documentation for my Supabase project"
 - "Generate a changelog of my database structure"
 - "Create documentation for my Supabase tables and views"
+
+### Helping the LLM Understand the Tool
+
+When first using the tool, it's helpful to provide some context to the LLM about what the tool does. You can do this by starting with a prompt like:
+
+"I have a Supabase Schema Tracker MCP tool that can document database schema changes. The tool is called 'document_db_changes' and it analyzes my Supabase PostgreSQL database to detect DDL changes and generate documentation. Can you help me use this tool to document my current database schema?"
+
+This helps the LLM understand:
+1. The name of the tool (`document_db_changes`)
+2. What it does (documents schema changes)
+3. When to use it (for analyzing Supabase PostgreSQL databases)
 
 The tool will generate documentation in the `docs/` directory of the project:
 

@@ -99,26 +99,28 @@ The tool generates two main output files:
 
 To integrate with Augment Code VS Code extension:
 
-1. Open VS Code Settings (JSON)
-2. Add the following configuration to your settings:
+1. Open Augment Code Settings in VS Code:
+   - Click on the Augment Code icon in the VS Code sidebar
+   - Click on the gear icon (⚙️) to open settings
+   - Navigate to the "MCP" section
+   - Click the "+" button to add a new MCP server
 
-```json
-"augment.advanced": {
-  "mcpServers": [
-    {
-      "name": "Supabase Schema Tracker",
-      "url": "http://localhost:6789/mcp",
-      "toolInstructions": "You have access to a tool called 'document_db_changes' that can detect and document schema changes in a Supabase PostgreSQL database. This tool will analyze the database, identify any Data Definition Language (DDL) changes since the last run, update a changelog file, and generate a complete schema structure document. Use this tool when the user asks about database schema, documentation, or tracking changes to their Supabase database structure."
-    }
-  ]
-}
-```
+2. Fill in the MCP server configuration fields:
+   - **Name**: `Supabase Schema Tracker`
+   - **Command**: `node /path/to/mcp-supabase-diff-doc/mcp/server.js`
+     - Replace `/path/to` with the actual path to your project
 
-3. Start the MCP server manually in a terminal:
-```bash
-cd /path/to/mcp-supabase-diff-doc
-DB_HOST=localhost DB_PORT=54322 DB_NAME=postgres DB_USER=postgres DB_PASSWORD=postgres MCP_PORT=6789 node mcp/server.js
-```
+3. Add Environment Variables (click "Add" button for each):
+   - `DB_HOST` = `localhost`
+   - `DB_PORT` = `54322`
+   - `DB_NAME` = `postgres`
+   - `DB_USER` = `postgres`
+   - `DB_PASSWORD` = `postgres`
+   - `MCP_PORT` = `6789`
+
+4. Click "Add" to save the MCP server configuration
+
+Augment Code will automatically start the MCP server when needed.
 
 For more detailed instructions, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
 
