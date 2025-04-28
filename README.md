@@ -97,32 +97,29 @@ The tool generates two main output files:
 
 #### Augment Code Integration
 
-To integrate with Augment Code VS Code extension:
+To integrate with Augment Code VS Code extension, you have two options:
 
-1. Open Augment Code Settings in VS Code:
-   - Click on the Augment Code icon in the VS Code sidebar
-   - Click on the gear icon (⚙️) to open settings
-   - Navigate to the "MCP" section
-   - Click the "+" button to add a new MCP server
+**Option 1: Connect to an Existing MCP Server (Recommended)**
 
-2. Fill in the MCP server configuration fields:
+If you already have the MCP server running:
+
+1. Open Augment Code Settings in VS Code
+2. Add a new MCP server with:
    - **Name**: `Supabase Schema Tracker`
-   - **Command**: `node /path/to/mcp-supabase-diff-doc/mcp/server.js`
-     - Replace `/path/to` with the actual path to your project
+   - **URL**: `http://localhost:6789/mcp`
+   - Do NOT fill in Command or Environment Variables
 
-3. Add Environment Variables (click "Add" button for each):
-   - `DB_HOST` = `localhost`
-   - `DB_PORT` = `54322`
-   - `DB_NAME` = `postgres`
-   - `DB_USER` = `postgres`
-   - `DB_PASSWORD` = `postgres`
-   - `MCP_PORT` = `6789`
+**Option 2: Let Augment Code Start the MCP Server**
 
-4. Click "Add" to save the MCP server configuration
+If you want Augment Code to start the server:
 
-Augment Code will automatically start the MCP server when needed.
+1. Open Augment Code Settings in VS Code
+2. Add a new MCP server with:
+   - **Name**: `Supabase Schema Tracker`
+   - **Command**: Full path to node and server.js
+   - **Environment Variables**: Database connection details
 
-For more detailed instructions, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
+For detailed instructions on both options, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
 
 #### Other VS Code AI Extensions
 

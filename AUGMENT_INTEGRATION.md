@@ -4,7 +4,37 @@ This document provides instructions for integrating the MCP Supabase Schema Trac
 
 ## Augment Code MCP Server Configuration
 
-To configure the MCP Supabase Schema Tracker in Augment Code settings:
+There are two ways to configure the MCP Supabase Schema Tracker in Augment Code settings:
+
+### Option 1: Connect to an Existing MCP Server (Recommended)
+
+If you already have the MCP server running (or prefer to start it manually):
+
+1. Start the MCP server in a terminal (if not already running):
+   ```bash
+   cd /path/to/mcp-supabase-diff-doc
+   DB_HOST=localhost DB_PORT=54322 DB_NAME=postgres DB_USER=postgres DB_PASSWORD=postgres MCP_PORT=6789 node mcp/server.js
+   ```
+
+2. Open Augment Code Settings in VS Code:
+   - Click on the Augment Code icon in the VS Code sidebar
+   - Click on the gear icon (⚙️) to open settings
+   - Navigate to the "MCP" section
+   - Click the "+" button to add a new MCP server
+
+3. Fill in only these fields:
+   - **Name**: `Supabase Schema Tracker`
+   - **URL**: `http://localhost:6789/mcp`
+
+4. **Important**: Do NOT fill in the Command or Environment Variables fields
+   - When you provide a URL but no Command, Augment Code will connect to the existing server
+   - When you provide a Command, Augment Code tries to start a new server
+
+5. Click "Add" to save the configuration
+
+### Option 2: Let Augment Code Start the MCP Server
+
+If you want Augment Code to automatically start the MCP server:
 
 1. Open Augment Code Settings in VS Code:
    - Click on the Augment Code icon in the VS Code sidebar
@@ -14,9 +44,9 @@ To configure the MCP Supabase Schema Tracker in Augment Code settings:
 
 2. Fill in the MCP server configuration fields:
    - **Name**: `Supabase Schema Tracker`
-   - **Command**: `node /path/to/mcp-supabase-diff-doc/mcp/server.js`
-     - Replace `/path/to` with the actual path to your project
-     - For example: `node /Users/jpg/Coding/mcp-supabase-diff-doc/mcp/server.js`
+   - **Command**: `/opt/homebrew/bin/node /Users/jpg/Coding/mcp-supabase-diff-doc/mcp/server.js`
+     - Use the full path to both node and your server.js file
+     - Adjust the paths based on your system
 
 3. Add Environment Variables (click "Add" button for each):
    - `DB_HOST` = `localhost`
@@ -27,12 +57,6 @@ To configure the MCP Supabase Schema Tracker in Augment Code settings:
    - `MCP_PORT` = `6789`
 
 4. Click "Add" to save the MCP server configuration
-
-5. Augment Code will automatically start the MCP server when needed, or you can start it manually in a terminal:
-   ```bash
-   cd /path/to/mcp-supabase-diff-doc
-   DB_HOST=localhost DB_PORT=54322 DB_NAME=postgres DB_USER=postgres DB_PASSWORD=postgres MCP_PORT=6789 node mcp/server.js
-   ```
 
 ## Understanding the MCP Tool
 
