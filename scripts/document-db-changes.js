@@ -52,7 +52,9 @@ function runCommand(command, silent = true) {
  */
 function dumpCurrentSchema() {
     ensureDirExists(SNAPSHOTS_DIR);
-    const dumpCommand = `${PGPASSWORD} pg_dump --schema-only --host=${DB_HOST} --port=${DB_PORT} --username=${DB_USER} --dbname=${DB_NAME} --file="${CURRENT_SCHEMA_SQL}" --no-owner --no-privileges`;
+    // Use the full path to pg_dump
+    const pgDumpPath = '/opt/homebrew/opt/libpq/bin/pg_dump';
+    const dumpCommand = `${PGPASSWORD} ${pgDumpPath} --schema-only --host=${DB_HOST} --port=${DB_PORT} --username=${DB_USER} --dbname=${DB_NAME} --file="${CURRENT_SCHEMA_SQL}" --no-owner --no-privileges`;
     runCommand(dumpCommand);
     console.log(`Schema dumped successfully to ${CURRENT_SCHEMA_SQL}`);
 }
@@ -87,15 +89,15 @@ function generateSchemaDiff() {
         console.log('No schema changes detected.');
         return null;
     }
-    
+
     // Basic heuristic to filter out only DDL statements. This might need refinement.
     const ddlKeywords = ['CREATE', 'ALTER', 'DROP', 'COMMENT ON', 'SECURITY LABEL', 'POLICY', 'TRIGGER', 'FUNCTION', 'TYPE', 'SCHEMA', 'EXTENSION', 'SEQUENCE', 'TABLE', 'INDEX', 'VIEW'];
     const ddlChanges = changes.split('\n').filter(line => ddlKeywords.some(keyword => line.toUpperCase().startsWith(keyword))).join('\n');
 
 
     if (ddlChanges.trim().length === 0) {
-         console.log('Diff found, but no apparent DDL changes after filtering.');
-         return null;
+        console.log('Diff found, but no apparent DDL changes after filtering.');
+        return null;
     }
 
     console.log('Schema changes detected.');
@@ -146,7 +148,7 @@ function generateStructureDoc() {
  */
 function rotateSnapshots() {
     if (fs.existsSync(CURRENT_SCHEMA_SQL)) {
-         // Delete old previous snapshot if it exists
+        // Delete old previous snapshot if it exists
         if (fs.existsSync(PREVIOUS_SCHEMA_SQL)) {
             fs.unlinkSync(PREVIOUS_SCHEMA_SQL);
             console.log(`Deleted old snapshot: ${PREVIOUS_SCHEMA_SQL}`);
@@ -155,7 +157,7 @@ function rotateSnapshots() {
         fs.renameSync(CURRENT_SCHEMA_SQL, PREVIOUS_SCHEMA_SQL);
         console.log(`Rotated snapshots: ${CURRENT_SCHEMA_SQL} -> ${PREVIOUS_SCHEMA_SQL}`);
     } else {
-         console.warn(`Current schema file ${CURRENT_SCHEMA_SQL} not found during rotation.`);
+        console.warn(`Current schema file ${CURRENT_SCHEMA_SQL} not found during rotation.`);
     }
 
 }
@@ -177,12 +179,12 @@ async function documentDatabaseChanges() {
         if (diffText) {
             updateChangelog(diffText);
         } else if (!fs.existsSync(PREVIOUS_SCHEMA_SQL)) {
-             // Handle first run: Create changelog if it doesn't exist, add initial entry
-             ensureDirExists(DOCS_DIR);
-              if (!fs.existsSync(CHANGELOG_MD)) {
-                    console.log(`Creating initial changelog file: ${CHANGELOG_MD}`);
-                    fs.writeFileSync(CHANGELOG_MD, `# Supabase Schema Changelog\n\n*Initial schema captured at: ${new Date().toISOString()}*\n`);
-             }
+            // Handle first run: Create changelog if it doesn't exist, add initial entry
+            ensureDirExists(DOCS_DIR);
+            if (!fs.existsSync(CHANGELOG_MD)) {
+                console.log(`Creating initial changelog file: ${CHANGELOG_MD}`);
+                fs.writeFileSync(CHANGELOG_MD, `# Supabase Schema Changelog\n\n*Initial schema captured at: ${new Date().toISOString()}*\n`);
+            }
         }
 
         // 4. Generate the full structure documentation (overwrite)

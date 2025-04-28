@@ -15,19 +15,19 @@ The MCP Supabase Schema Tracker is a tool that:
 
 - [x] **1.1. Install Prerequisites**
   - [x] Node.js (v18+) and npm/yarn
-  - [ ] Docker & Docker Compose
-  - [ ] Supabase CLI (`npm install -g supabase`)
-  - [ ] PostgreSQL Client Tools (`psql`, `pg_dump`)
+  - [x] Docker & Docker Compose
+  - [x] Supabase CLI (`npm install -g supabase`)
+  - [x] PostgreSQL Client Tools (`psql`, `pg_dump`)
   - [x] Verify `diff` command-line utility is available
 
-- [ ] **1.2. Setup Local Supabase**
-  - [ ] Start local Supabase instance via Docker (`supabase start`)
-  - [ ] Verify database connection details:
-    - [ ] Host (usually `localhost` or `127.0.0.1`)
-    - [ ] Port (default `54322` for Supabase CLI v1.163.6+)
-    - [ ] Database name (usually `postgres`)
-    - [ ] Username (usually `postgres`)
-    - [ ] Password (check Supabase config)
+- [x] **1.2. Setup Local Supabase**
+  - [x] Start local Supabase instance via Docker (`supabase start`)
+  - [x] Verify database connection details:
+    - [x] Host (localhost)
+    - [x] Port (54322)
+    - [x] Database name (postgres)
+    - [x] Username (postgres)
+    - [x] Password (postgres)
 
 ### Phase 2: Project Structure Setup
 
@@ -64,10 +64,10 @@ The MCP Supabase Schema Tracker is a tool that:
     - [x] `rotateSnapshots()` - Rotate schema snapshots for next run
     - [x] `documentDatabaseChanges()` - Main orchestration function
 
-- [ ] **3.2. Test Core Script Independently**
-  - [ ] Run script directly with `node scripts/document-db-changes.js`
-  - [ ] Verify it creates initial schema files correctly
-  - [ ] Make a schema change in Supabase and run again to test diff detection
+- [x] **3.2. Test Core Script Independently**
+  - [x] Run script directly with `node scripts/document-db-changes.js`
+  - [x] Verify it creates initial schema files correctly
+  - [x] Make a schema change in Supabase and run again to test diff detection
 
 ### Phase 4: MCP Server Implementation
 
@@ -78,19 +78,19 @@ The MCP Supabase Schema Tracker is a tool that:
   - [x] Implement tool call handler for `document_db_changes`
   - [x] Connect handler to core script functionality
 
-- [ ] **4.2. Test MCP Server**
-  - [ ] Start server with `node mcp/server.js`
-  - [ ] Verify server starts and listens on configured port
-  - [ ] Test with a manual MCP request to the endpoint
+- [x] **4.2. Test MCP Server**
+  - [x] Start server with `node mcp/server.js`
+  - [x] Verify server starts and listens on configured port
+  - [x] Test with a manual MCP request to the endpoint
 
 ### Phase 5: Integration and Testing
 
-- [ ] **5.1. Full System Testing**
-  - [ ] Start Supabase local instance
-  - [ ] Start MCP server
-  - [ ] Make schema changes in Supabase
-  - [ ] Invoke tool via MCP request
-  - [ ] Verify changelog and structure files are updated correctly
+- [x] **5.1. Full System Testing**
+  - [x] Start Supabase local instance
+  - [x] Start MCP server
+  - [x] Make schema changes in Supabase
+  - [x] Invoke tool via MCP request
+  - [x] Verify changelog and structure files are updated correctly
 
 - [ ] **5.2. VS Code Extension Integration**
   - [ ] Configure VS Code extension(s) to use the MCP server:
@@ -101,15 +101,15 @@ The MCP Supabase Schema Tracker is a tool that:
 
 ### Phase 6: Documentation and Finalization
 
-- [ ] **6.1. Create User Documentation**
-  - [ ] Document setup process
-  - [ ] Document usage instructions
-  - [ ] Document troubleshooting steps
+- [x] **6.1. Create User Documentation**
+  - [x] Document setup process
+  - [x] Document usage instructions
+  - [x] Document troubleshooting steps
 
-- [ ] **6.2. Finalize Project**
-  - [ ] Review code for any improvements or optimizations
-  - [ ] Ensure all files are properly committed to version control
-  - [ ] Create a README.md with project overview and setup instructions
+- [x] **6.2. Finalize Project**
+  - [x] Review code for any improvements or optimizations
+  - [x] Ensure all files are properly committed to version control
+  - [x] Create a README.md with project overview and setup instructions
 
 ## Completion Criteria
 
