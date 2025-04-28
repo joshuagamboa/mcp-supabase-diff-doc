@@ -52,9 +52,20 @@ function runCommand(command, silent = true) {
  */
 function dumpCurrentSchema() {
     ensureDirExists(SNAPSHOTS_DIR);
-    // Use the full path to pg_dump
-    const pgDumpPath = '/opt/homebrew/opt/libpq/bin/pg_dump';
-    const dumpCommand = `${PGPASSWORD} ${pgDumpPath} --schema-only --host=${DB_HOST} --port=${DB_PORT} --username=${DB_USER} --dbname=${DB_NAME} --file="${CURRENT_SCHEMA_SQL}" --no-owner --no-privileges`;
+
+    // Get the container ID for the Supabase PostgreSQL container
+    const getContainerIdCommand = `docker ps | grep supabase_db | awk '{print $1}'`;
+    const containerIdResult = shell.exec(getContainerIdCommand, { silent: true });
+
+    if (containerIdResult.code !== 0 || !containerIdResult.stdout.trim()) {
+        throw new Error("Could not find Supabase PostgreSQL container");
+    }
+
+    const containerId = containerIdResult.stdout.trim();
+    console.log(`Using PostgreSQL container: ${containerId}`);
+
+    // Use docker exec to run pg_dump inside the container
+    const dumpCommand = `docker exec ${containerId} pg_dump --schema-only --host=localhost --port=5432 --username=${DB_USER} --dbname=${DB_NAME} --no-owner --no-privileges > "${CURRENT_SCHEMA_SQL}"`;
     runCommand(dumpCommand);
     console.log(`Schema dumped successfully to ${CURRENT_SCHEMA_SQL}`);
 }
