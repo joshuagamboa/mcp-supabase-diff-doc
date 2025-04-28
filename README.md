@@ -26,8 +26,10 @@ This MCP client detects and records Data Definition Language (DDL) changes made 
 - Node.js (v18+) and npm/yarn
 - Docker & Docker Compose
 - Supabase CLI (`npm install -g supabase`)
-- PostgreSQL Client Tools (`psql`, `pg_dump`)
+- Running Supabase instance in Docker (started with `supabase start`)
 - `diff` command-line utility (standard on Linux/macOS)
+
+> **Note:** This tool is designed to work with a Supabase instance running in Docker containers. It automatically detects the PostgreSQL container and uses Docker commands to interact with it.
 
 ## Installation
 
@@ -93,19 +95,46 @@ The tool generates two main output files:
 
 ### VS Code Extension Integration
 
-To integrate with VS Code AI extensions:
+#### Augment Code Integration
+
+To integrate with Augment Code VS Code extension:
+
+1. Open VS Code Settings
+2. Search for "Augment" and find the MCP server configuration section
+3. Add a new MCP server with the following details:
+   - **Name**: `Supabase Schema Tracker`
+   - **Command**: `node /path/to/mcp-supabase-diff-doc/mcp/server.js`
+     - Replace `/path/to` with the actual path to your project
+     - If you encounter "node not found" errors, use the full path to Node.js:
+       `/opt/homebrew/bin/node /path/to/mcp-supabase-diff-doc/mcp/server.js`
+   - **Environment Variables**:
+     ```
+     DB_HOST=localhost
+     DB_PORT=54322
+     DB_NAME=postgres
+     DB_USER=postgres
+     DB_PASSWORD=postgres
+     MCP_PORT=6789
+     ```
+
+For more detailed instructions, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
+
+#### Other VS Code AI Extensions
+
+For other VS Code AI extensions:
 
 1. **Roo-coder**: Set `roo.mcpServerUrl` to `http://localhost:6789/mcp`
 2. **Cline**: Add `http://localhost:6789/mcp` to `cline.mcpEndpoints`
-3. **Augment**: Configure the MCP server URL in settings
 
 ## Troubleshooting
 
 ### Common Issues
 
-- **PostgreSQL Connection Issues**: Ensure your Supabase instance is running and the connection details in `.env` are correct.
-- **Command Not Found Errors**: Make sure `pg_dump` and `diff` are in your PATH or update the script with the full path.
+- **Docker Connection Issues**: Make sure your Supabase Docker containers are running (`docker ps | grep supabase_db`).
+- **PostgreSQL Connection Issues**: The tool is configured to work with the Supabase PostgreSQL container automatically.
+- **Node.js Not Found**: If you get a "node: command not found" error, use the full path to Node.js in the command.
 - **Permission Denied**: Ensure the user running the script has permission to create and modify files in the project directories.
+- **pg_dump Errors**: The tool uses Docker to run pg_dump inside the container, so you don't need pg_dump installed locally.
 
 ### Logs
 
@@ -113,17 +142,34 @@ Check the console output for detailed logs when running the server or executing 
 
 ## Development
 
+### Testing the Core Script
+
 To run the core script directly (without the MCP server):
 
 ```bash
 node scripts/document-db-changes.js
 ```
 
-To test the MCP server with a sample request:
+### Testing the MCP Server
 
-```bash
-node test-mcp-call.js
-```
+1. Start the MCP server:
+   ```bash
+   node mcp/server.js
+   ```
+
+2. In a separate terminal, test with a sample request:
+   ```bash
+   node test-mcp-call.js
+   ```
+
+### Docker Integration
+
+The tool automatically:
+1. Detects the running Supabase PostgreSQL container
+2. Uses `docker exec` to run pg_dump inside the container
+3. Connects to the PostgreSQL server using the internal container connection (localhost:5432)
+
+This approach ensures reliable operation with the Supabase Docker setup without requiring PostgreSQL client tools to be installed locally.
 
 ## License
 
