@@ -1,10 +1,3 @@
-# Supabase Schema Structure
-
-*Generated at: 2025-04-28T07:53:33.038Z*
-
-This document contains the complete DDL structure of the database schema.
-
-```sql
 --
 -- PostgreSQL database dump
 --
@@ -9019,5 +9012,3 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-
-```
