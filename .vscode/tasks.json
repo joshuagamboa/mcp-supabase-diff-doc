@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start MCP Supabase Schema Tracker",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "${workspaceFolder}/mcp/server.js"
+            ],
+            "options": {
+                "env": {
+                    "DB_HOST": "localhost",
+                    "DB_PORT": "54322",
+                    "DB_NAME": "postgres",
+                    "DB_USER": "postgres",
+                    "DB_PASSWORD": "postgres",
+                    "MCP_PORT": "6789"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "MCP Schema Tracker Server listening",
+                        "endsPattern": "MCP endpoint available at"
+                    }
+                }
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
+}

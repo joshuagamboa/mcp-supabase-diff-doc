@@ -93,15 +93,27 @@ The tool generates two main output files:
 1. **Schema Changelog** (`docs/supabase-changelog.md`): A chronological record of all DDL changes detected.
 2. **Schema Structure** (`docs/supabase-structure.md`): A complete snapshot of the current database schema.
 
-### VS Code Extension Integration
+### VS Code Integration
 
-#### Augment Code Integration
+#### Running in VS Code (No AI Extensions)
 
-To integrate with Augment Code VS Code extension, you have two options:
+You can run the MCP server directly in VS Code without any AI extensions:
 
-**Option 1: Connect to an Existing MCP Server (Recommended)**
+1. **Using VS Code Tasks**:
+   - Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+   - Type "Tasks: Run Task" and select it
+   - Choose "Start MCP Supabase Schema Tracker"
 
-If you already have the MCP server running:
+2. **Using the Terminal**:
+   - Run `./start-mcp-server.sh` in a VS Code terminal
+
+For detailed instructions, see [VSCODE_INTEGRATION.md](VSCODE_INTEGRATION.md).
+
+#### AI Extension Integration
+
+**Augment Code Integration**
+
+To integrate with Augment Code VS Code extension:
 
 1. Open Augment Code Settings in VS Code
 2. Add a new MCP server with:
@@ -109,19 +121,9 @@ If you already have the MCP server running:
    - **URL**: `http://localhost:6789/mcp`
    - Do NOT fill in Command or Environment Variables
 
-**Option 2: Let Augment Code Start the MCP Server**
+For detailed instructions, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
 
-If you want Augment Code to start the server:
-
-1. Open Augment Code Settings in VS Code
-2. Add a new MCP server with:
-   - **Name**: `Supabase Schema Tracker`
-   - **Command**: Full path to node and server.js
-   - **Environment Variables**: Database connection details
-
-For detailed instructions on both options, see [AUGMENT_INTEGRATION.md](AUGMENT_INTEGRATION.md).
-
-#### Other VS Code AI Extensions
+**Other VS Code AI Extensions**
 
 For other VS Code AI extensions:
 
