@@ -107,7 +107,8 @@ To integrate with Augment Code VS Code extension:
   "mcpServers": [
     {
       "name": "Supabase Schema Tracker",
-      "url": "http://localhost:6789/mcp"
+      "url": "http://localhost:6789/mcp",
+      "toolInstructions": "You have access to a tool called 'document_db_changes' that can detect and document schema changes in a Supabase PostgreSQL database. This tool will analyze the database, identify any Data Definition Language (DDL) changes since the last run, update a changelog file, and generate a complete schema structure document. Use this tool when the user asks about database schema, documentation, or tracking changes to their Supabase database structure."
     }
   ]
 }
