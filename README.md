@@ -2,6 +2,8 @@
 
 A tool for tracking and documenting schema changes in Supabase PostgreSQL databases.
 
+> **Project Creation**: The architecture for this project was planned by Gemini 2.5 Pro Experimental, and the entire codebase was implemented by Agent (Auto) through the Augment Code VS Code extension. The implementation was completed in a single agent session with approximately 40 tool uses, including file creation, editing, and command execution.
+
 ## Overview
 
 This MCP client detects and records Data Definition Language (DDL) changes made to a local Supabase PostgreSQL database. When invoked by an LLM via an MCP `tools/call` request, it:
@@ -126,3 +128,18 @@ node test-mcp-call.js
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Project Development
+
+This project demonstrates the capabilities of AI-assisted development:
+
+- **Architecture Planning**: The project architecture was designed by Gemini 2.5 Pro Experimental
+- **Implementation**: The entire codebase was written by Agent (Auto) through the Augment Code VS Code extension
+- **Development Process**: The implementation was completed in a single agent session, with the agent handling:
+  - Project structure creation
+  - Code writing and editing
+  - Dependency management
+  - Testing and debugging
+  - Documentation
+
+This approach showcases how AI agents can efficiently implement software projects from architectural specifications, handling both the technical implementation and documentation aspects.
