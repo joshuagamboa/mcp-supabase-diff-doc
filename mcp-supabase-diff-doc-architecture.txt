@@ -1,0 +1,466 @@
+**Enhanced Plan: MCP Client for Supabase Schema Tracking**
+
+**Goal:**
+
+Create an efficient and reliable MCP client. When invoked by an LLM via an MCP `tools/call` request, this client will:
+
+1.  **Detect & Record DDL Changes:** Identify Data Definition Language (DDL) changes (e.g., `CREATE TABLE`, `ALTER FUNCTION`, `DROP INDEX`) made to a local Supabase PostgreSQL database since the last invocation. Append these changes, with a timestamp, to a persistent changelog file (`docs/supabase-changelog.md`).
+2.  **Snapshot Current Schema Structure:** Generate a complete, well-formatted Markdown representation of the *entire current* database schema (tables, views, functions, types, etc.) and overwrite a dedicated structure file (`docs/supabase-structure.md`).
+
+**Key Improvements:**
+
+* **Detailed Pseudocode:** Provides a clearer implementation guide.
+* **Efficiency:** Uses standard, readily available tools (`pg_dump`, `diff`). Emphasizes error handling. Uses `shelljs` in Node.js for cleaner command execution.
+* **Configuration:** Uses `.env` for database credentials and server port.
+* **LLM Performance:** The tool executes synchronously from the MCP server's perspective, returning quickly. The generated Markdown files provide clear, structured context for the LLM.
+* **Robustness:** Handles the initial run (no previous snapshot) gracefully.
+* **Clear Structure:** Defines a project folder layout and `package.json`.
+* **Integration:** Provides setup steps for common VS Code AI extensions.
+
+---
+
+**1. Prerequisites & Environment Setup**
+
+* **Tools:**
+    * Node.js (v18+) and npm/yarn
+    * Docker & Docker Compose
+    * Supabase CLI (`npm install -g supabase`)
+    * PostgreSQL Client Tools (`psql`, `pg_dump`). Often included with Postgres installations or installable via package managers (e.g., `apt-get install postgresql-client`, `brew install libpq`).
+    * `diff` command-line utility (standard on Linux/macOS, available on Windows via Git Bash or WSL).
+* **Local Supabase:** Ensure your Supabase project is running locally via Docker (`supabase start`).
+* **Database Connection:** Identify your local PostgreSQL connection details:
+    * Host (usually `localhost` or `127.0.0.1`)
+    * Port (default `54322` when started via Supabase CLI v1.163.6+, previously `5432`) - *Verify this!*
+    * Database Name (usually `postgres`)
+    * Username (usually `postgres`)
+    * Password (find this in your Supabase project setup, often `postgres` by default locally, or check Supabase status/config).
+
+---
+
+**2. Project Structure & Setup**
+
+* **Folder Structure:**
+
+    ```
+    mcp-schema-tracker/
+    ├── .env                # Local environment configuration (DB credentials, PORT) - DO NOT COMMIT
+    ├── .env.example        # Example environment file
+    ├── .gitignore          # Git ignore rules (node_modules, .env, snapshots/)
+    ├── package.json        # Project manifest
+    ├── mcp/
+    │   └── server.js       # MCP server logic
+    ├── scripts/
+    │   └── document-db-changes.js # Core logic script
+    ├── snapshots/          # Stores temporary schema dumps (.gitignore this)
+    │   └── previous.sql    # Previous schema snapshot (managed by script)
+    └── docs/               # Output documentation files (commit these)
+        ├── supabase-changelog.md # Append-only DDL diff log
+        └── supabase-structure.md # Complete schema snapshot
+    ```
+
+* **`package.json` Setup:**
+
+    ```json
+    {
+      "name": "mcp-schema-tracker",
+      "version": "1.0.0",
+      "description": "MCP Client to track Supabase schema changes",
+      "main": "mcp/server.js",
+      "scripts": {
+        "start": "node mcp/server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+      },
+      "dependencies": {
+        "dotenv": "^16.3.1",     // For loading .env configuration
+        "express": "^4.18.2",    // Web server framework
+        "mcp-server": "^0.2.0", // MCP server library (or latest)
+        "shelljs": "^0.8.5"      // For easier shell command execution in Node.js
+      },
+      "author": "",
+      "license": "ISC"
+    }
+    ```
+
+* **`.env.example` File:**
+
+    ```ini
+    # Database Connection Details (Find these from your local Supabase setup)
+    DB_HOST=localhost
+    DB_PORT=54322 # Verify Supabase CLI default port
+    DB_NAME=postgres
+    DB_USER=postgres
+    DB_PASSWORD=your_db_password # Replace with your actual local password
+
+    # MCP Server Configuration
+    MCP_PORT=6789
+    ```
+
+* **`.gitignore` File:**
+
+    ```
+    node_modules/
+    .env
+    snapshots/
+    ```
+
+---
+
+**3. Core Script Logic (`scripts/document-db-changes.js`)**
+
+This script performs the heavy lifting. It's designed to be called by the MCP server.
+
+```javascript
+// scripts/document-db-changes.js
+const fs = require('fs');
+const path = require('path');
+const shell = require('shelljs');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') }); // Load .env from root
+
+// --- Configuration ---
+const SNAPSHOTS_DIR = path.resolve(__dirname, '../snapshots');
+const DOCS_DIR = path.resolve(__dirname, '../docs');
+const CURRENT_SCHEMA_SQL = path.join(SNAPSHOTS_DIR, 'current.sql');
+const PREVIOUS_SCHEMA_SQL = path.join(SNAPSHOTS_DIR, 'previous.sql');
+const CHANGELOG_MD = path.join(DOCS_DIR, 'supabase-changelog.md');
+const STRUCTURE_MD = path.join(DOCS_DIR, 'supabase-structure.md');
+
+const { DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD } = process.env;
+const PGPASSWORD = `PGPASSWORD=${DB_PASSWORD}`; // Environment variable for pg_dump password
+
+// --- Helper Functions ---
+
+/**
+ * Ensures a directory exists.
+ * @param {string} dirPath - Path to the directory.
+ */
+function ensureDirExists(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        console.log(`Creating directory: ${dirPath}`);
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+}
+
+/**
+ * Executes a shell command using shelljs.
+ * @param {string} command - The command to execute.
+ * @param {boolean} silent - Whether to suppress output (default: true).
+ * @returns {shell.ShellString} - The result object from shelljs.exec.
+ */
+function runCommand(command, silent = true) {
+    console.log(`Executing: ${command.replace(DB_PASSWORD, '********')}`); // Avoid logging password
+    const result = shell.exec(command, { silent: silent });
+    if (result.code !== 0) {
+        console.error(`Error executing command: ${command.replace(DB_PASSWORD, '********')}`);
+        console.error(result.stderr);
+        throw new Error(`Command failed with code ${result.code}`);
+    }
+    return result;
+}
+
+// --- Core Functions ---
+
+/**
+ * Dumps the current database schema to current.sql.
+ */
+function dumpCurrentSchema() {
+    ensureDirExists(SNAPSHOTS_DIR);
+    const dumpCommand = `${PGPASSWORD} pg_dump --schema-only --host=${DB_HOST} --port=${DB_PORT} --username=${DB_USER} --dbname=${DB_NAME} --file="${CURRENT_SCHEMA_SQL}" --no-owner --no-privileges`;
+    runCommand(dumpCommand);
+    console.log(`Schema dumped successfully to ${CURRENT_SCHEMA_SQL}`);
+}
+
+/**
+ * Generates the DDL diff between previous and current schema.
+ * @returns {string|null} - The diff text, or null if no previous schema exists or no changes.
+ */
+function generateSchemaDiff() {
+    if (!fs.existsSync(PREVIOUS_SCHEMA_SQL)) {
+        console.log('No previous schema found. Skipping diff generation.');
+        return null; // Indicate first run or missing previous state
+    }
+
+    // Using standard diff. Consider pg-diff or similar for more SQL-aware diffing if needed.
+    // The '-U 0' context makes the diff smaller, focusing only on changes.
+    const diffCommand = `diff -U 0 "${PREVIOUS_SCHEMA_SQL}" "${CURRENT_SCHEMA_SQL}"`;
+    console.log(`Generating diff: ${diffCommand}`);
+    const result = shell.exec(diffCommand, { silent: true }); // Allow non-zero exit code for diffs
+
+    // Filter diff output for actual changes (lines starting with + or - but not +++ or ---)
+    // And ignore comments and blank lines introduced by the diff itself
+    const changes = result.stdout
+        .split('\n')
+        .filter(line => /^[+-]/.test(line) && !/^[+-]{3}/.test(line) && !/^[+-]--/.test(line.trim()) && line.trim().length > 1)
+        .map(line => line.substring(1).trim()) // Remove leading + or -
+        .filter(line => line.length > 0) // Remove empty lines potentially left after trim
+        .join('\n');
+
+
+    if (changes.trim().length === 0 && result.code === 0) {
+        console.log('No schema changes detected.');
+        return null;
+    }
+    
+    // Basic heuristic to filter out only DDL statements. This might need refinement.
+    const ddlKeywords = ['CREATE', 'ALTER', 'DROP', 'COMMENT ON', 'SECURITY LABEL', 'POLICY', 'TRIGGER', 'FUNCTION', 'TYPE', 'SCHEMA', 'EXTENSION', 'SEQUENCE', 'TABLE', 'INDEX', 'VIEW'];
+    const ddlChanges = changes.split('\n').filter(line => ddlKeywords.some(keyword => line.toUpperCase().startsWith(keyword))).join('\n');
+
+
+    if (ddlChanges.trim().length === 0) {
+         console.log('Diff found, but no apparent DDL changes after filtering.');
+         return null;
+    }
+
+    console.log('Schema changes detected.');
+    return ddlChanges;
+}
+
+
+/**
+ * Appends the generated diff to the changelog file.
+ * @param {string} diffText - The DDL diff text.
+ */
+function updateChangelog(diffText) {
+    ensureDirExists(DOCS_DIR);
+    const timestamp = new Date().toISOString();
+    const logEntry = `\n---\n\n**Changes detected at: ${timestamp}**\n\n\`\`\`sql\n${diffText.trim()}\n\`\`\`\n`;
+
+    if (!fs.existsSync(CHANGELOG_MD)) {
+        console.log(`Creating changelog file: ${CHANGELOG_MD}`);
+        fs.writeFileSync(CHANGELOG_MD, `# Supabase Schema Changelog\n\nInitial schema captured or first changes recorded.\n`);
+    }
+
+    fs.appendFileSync(CHANGELOG_MD, logEntry);
+    console.log(`Changelog updated: ${CHANGELOG_MD}`);
+}
+
+
+/**
+ * Generates the full schema structure documentation.
+ */
+function generateStructureDoc() {
+    ensureDirExists(DOCS_DIR);
+    if (!fs.existsSync(CURRENT_SCHEMA_SQL)) {
+        console.error("Current schema file not found. Cannot generate structure doc.");
+        return; // Should have been created by dumpCurrentSchema
+    }
+    // Read the dumped schema SQL content
+    const schemaSql = fs.readFileSync(CURRENT_SCHEMA_SQL, 'utf8');
+
+    // Create a simple Markdown representation
+    const structureContent = `# Supabase Schema Structure\n\n*Generated at: ${new Date().toISOString()}*\n\nThis document contains the complete DDL structure of the database schema.\n\n\`\`\`sql\n${schemaSql}\n\`\`\`\n`;
+
+    fs.writeFileSync(STRUCTURE_MD, structureContent);
+    console.log(`Schema structure documentation updated: ${STRUCTURE_MD}`);
+}
+
+/**
+ * Rotates the schema snapshots: current.sql -> previous.sql.
+ */
+function rotateSnapshots() {
+    if (fs.existsSync(CURRENT_SCHEMA_SQL)) {
+         // Delete old previous snapshot if it exists
+        if (fs.existsSync(PREVIOUS_SCHEMA_SQL)) {
+            fs.unlinkSync(PREVIOUS_SCHEMA_SQL);
+            console.log(`Deleted old snapshot: ${PREVIOUS_SCHEMA_SQL}`);
+        }
+        // Rename current to previous
+        fs.renameSync(CURRENT_SCHEMA_SQL, PREVIOUS_SCHEMA_SQL);
+        console.log(`Rotated snapshots: ${CURRENT_SCHEMA_SQL} -> ${PREVIOUS_SCHEMA_SQL}`);
+    } else {
+         console.warn(`Current schema file ${CURRENT_SCHEMA_SQL} not found during rotation.`);
+    }
+
+}
+
+/**
+ * Main function to orchestrate the documentation process.
+ * @returns {Promise<{success: boolean, message: string}>} - Operation result.
+ */
+async function documentDatabaseChanges() {
+    console.log("Starting database documentation process...");
+    try {
+        // 1. Dump the current schema
+        dumpCurrentSchema();
+
+        // 2. Generate diff against the previous snapshot
+        const diffText = generateSchemaDiff();
+
+        // 3. Update changelog if changes were detected
+        if (diffText) {
+            updateChangelog(diffText);
+        } else if (!fs.existsSync(PREVIOUS_SCHEMA_SQL)) {
+             // Handle first run: Create changelog if it doesn't exist, add initial entry
+             ensureDirExists(DOCS_DIR);
+              if (!fs.existsSync(CHANGELOG_MD)) {
+                    console.log(`Creating initial changelog file: ${CHANGELOG_MD}`);
+                    fs.writeFileSync(CHANGELOG_MD, `# Supabase Schema Changelog\n\n*Initial schema captured at: ${new Date().toISOString()}*\n`);
+             }
+        }
+
+        // 4. Generate the full structure documentation (overwrite)
+        generateStructureDoc();
+
+        // 5. Rotate snapshots (current -> previous) for the next run
+        rotateSnapshots();
+
+        console.log("Database documentation process completed successfully.");
+        return { success: true, message: "Database schema changes documented successfully." };
+
+    } catch (error) {
+        console.error("Error during database documentation process:", error);
+        return { success: false, message: `Error: ${error.message}` };
+    }
+}
+
+// Export the main function if this script is required as a module
+// Allow direct execution if run via `node scripts/document-db-changes.js`
+if (require.main === module) {
+    documentDatabaseChanges().then(result => {
+        console.log("Script finished:", result);
+        process.exit(result.success ? 0 : 1);
+    });
+} else {
+    module.exports = documentDatabaseChanges;
+}
+```
+
+---
+
+**4. MCP Server (`mcp/server.js`)**
+
+This sets up the Express server and registers the MCP tool.
+
+```javascript
+// mcp/server.js
+const express = require('express');
+const { McpServer } = require('mcp-server');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') }); // Load .env from root
+
+const documentDatabaseChanges = require('../scripts/document-db-changes'); // Import the core logic
+
+const app = express();
+const PORT = process.env.MCP_PORT || 6789; // Use port from .env or default
+
+// Define the MCP Tool Schema
+const documentDbTool = {
+    name: "document_db_changes",
+    description: "Detects and records database schema (DDL) changes into docs/supabase-changelog.md and snapshots the current full schema structure into docs/supabase-structure.md.",
+    inputSchema: {
+        // No input arguments needed for this version
+        type: "object",
+        properties: {},
+        required: []
+    },
+    // Define output schema if you want to enforce structure, otherwise optional
+     outputSchema: {
+        type: "object",
+        properties: {
+            success: { type: "boolean" },
+            message: { type: "string" }
+        },
+        required: ["success", "message"]
+    }
+};
+
+// Create and configure the MCP Server
+const mcpServer = new McpServer({
+    logger: console, // Use console for logging
+    tools: [documentDbTool], // Register our tool
+});
+
+// Middleware to handle MCP requests
+app.use(express.json()); // Needed to parse JSON request bodies
+app.use('/mcp', mcpServer.middleware); // Mount MCP server at /mcp path
+
+// Implement the tool call handler
+mcpServer.handle('tools/call', async ({ toolCall }) => {
+    console.log(`Received tools/call for: ${toolCall.name}`);
+
+    if (toolCall.name === 'document_db_changes') {
+        try {
+            // Execute the documentation script
+            // This function now returns { success: boolean, message: string }
+            const result = await documentDatabaseChanges();
+
+            // Return the result according to MCP spec
+            return {
+                result: result, // The actual output from the tool's execution
+                status: result.success ? 'success' : 'error',
+            };
+        } catch (error) {
+            console.error(`Error executing tool ${toolCall.name}:`, error);
+            return {
+                 result: { // Provide structured error info
+                     success: false,
+                     message: `Internal server error: ${error.message}`
+                 },
+                 status: 'error',
+            };
+        }
+    } else {
+        // Handle unknown tool calls
+        console.warn(`Unknown tool called: ${toolCall.name}`);
+        return {
+            result: {
+                success: false,
+                message: `Tool '${toolCall.name}' not found.`
+            },
+            status: 'error', // MCP status for tool not found/error
+        };
+    }
+});
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`MCP Schema Tracker Server listening on http://localhost:${PORT}`);
+    console.log(`MCP endpoint available at http://localhost:${PORT}/mcp`);
+});
+```
+
+---
+
+**5. Running the MCP Client**
+
+1.  **Clone/Setup:** Create the folder structure, `package.json`, `.env.example`, and `.gitignore` as defined above.
+2.  **Install Dependencies:** `npm install` (or `yarn install`) in the `mcp-schema-tracker` directory.
+3.  **Configure:** Copy `.env.example` to `.env`. Edit `.env` and fill in your correct local Supabase database credentials (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`). You can also change `MCP_PORT` if needed.
+4.  **Start Supabase:** Ensure your local Supabase instance is running (`supabase start`).
+5.  **Start MCP Server:** Run `npm start` or `node mcp/server.js`.
+
+You should see output indicating the server is running on the configured port (e.g., `http://localhost:6789`).
+
+---
+
+**6. Invoking from LLM / Integrating with VS Code Extensions**
+
+The LLM interacts with this client by sending an MCP `tools/call` request to the running server.
+
+* **MCP Endpoint URL:** `http://localhost:PORT/mcp` (e.g., `http://localhost:6789/mcp`)
+
+* **Tool Call Request (Example):**
+    ```json
+    {
+      "type": "tools/call",
+      "id": "call_abc123", // Unique request ID
+      "toolCall": {
+        "name": "document_db_changes",
+        "arguments": {} // No arguments needed for this tool
+      }
+    }
+    ```
+
+* **Integration with VS Code Extensions:**
+    * You need to tell your AI Coder extension where the MCP server is running. Look for settings related to "MCP Endpoint," "Tool Server," or similar.
+    * **Roo-coder:** In VS Code Settings (JSON or UI), find the `roo.mcpServerUrl` setting and set it to your MCP endpoint URL (e.g., `"roo.mcpServerUrl": "http://localhost:6789/mcp"`).
+    * **Cline:** Cline usually discovers MCP servers advertised via mDNS/DNS-SD on the local network. If manual configuration is needed or discovery fails, look for a setting like `cline.mcpEndpoints` (likely an array) and add your URL: `"cline.mcpEndpoints": ["http://localhost:6789/mcp"]`. Check Cline's documentation for the precise setting name.
+    * **Augment:** Augment also supports MCP. Check its settings (likely under "Augment" or "Tools") for an option to specify the MCP server URL. Set it to `http://localhost:6789/mcp`.
+
+    * **General Steps:**
+        1.  Open VS Code Settings (Ctrl/Cmd + ,).
+        2.  Search for the specific extension name (e.g., "Roo-coder", "Cline", "Augment").
+        3.  Look for settings related to "MCP", "Tools", or "Server URL".
+        4.  Enter `http://localhost:YOUR_PORT/mcp` (replace `YOUR_PORT` with the value from your `.env` file, e.g., 6789).
+        5.  Save settings and potentially reload VS Code or restart the extension if required.
+
+Once configured, the LLM agent integrated with these extensions should be able to list `document_db_changes` as an available tool and invoke it when appropriate (e.g., when asked "document the latest database changes" or "update the schema documentation"). The execution will update the files in the `docs/` directory.
